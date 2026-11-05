@@ -1,0 +1,60 @@
+name: Build Poco X7 TWRP (malachite)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+
+    steps:
+    - name: Checkout Builder
+      uses: actions/checkout@v4
+
+    - name: Cleanup Runner Space and Enable Disk Swap
+      run: |
+        sudo rm -rf /usr/share/dotnet
+        sudo rm -rf /usr/local/lib/android
+        sudo rm -rf /opt/ghc
+        sudo rm -rf "/usr/local/share/boost"
+        sudo rm -rf /etc/apt/sources.list.d/*
+        sudo swapoff -a
+        sudo dd if=/dev/zero of=/swapfile bs=1M count=16384
+        sudo chmod 600 /swapfile
+        sudo mkswap /swapfile
+        sudo swapon /swapfile
+
+    - name: Install Build Dependencies
+      run: |
+        sudo apt update
+        sudo apt install -y git-core gnupg flex bison gperf build-essential zip curl zlib1g-dev gcc-multilib g++-multilib libc6-dev-i386 lib32ncurses-dev x11proto-core-dev libx11-dev lib32z1-dev ccache libgl1-mesa-dev libxml2-utils xsltproc unzip fontconfig libssl-dev bc python3 libncurses5 repo
+        sudo ln -sf /usr/bin/python3 /usr/bin/python
+
+    - name: Set Up Workspace and Source Code
+      run: |
+        mkdir -p ~/twrp && cd ~/twrp
+        git config --global user.name "Xenon"
+        git config --global user.email "eriranno@gmail.com"
+        repo init --depth=1 -u https://github.com/minimal-manifest-twrp/platform_manifest_twrp_aosp.git -b twrp-14.1
+        repo sync -j$(nproc --all) --force-sync --no-clone-bundle --no-tags
+
+    - name: Add Malachite Device Tree & Apply Touch Patch
+      run: |
+        cd ~/twrp
+        git config --global --unset-all url."https://github.com".insteadOf || true
+        mkdir -p device/xiaomi/malachite
+        git clone https://github.com/mytiantian001/android_device_xiaomi_malachite_twrp.git -b A16 device/xiaomi/malachite
+        git -C bootable/recovery apply ../../device/xiaomi/malachite/patches/0001-minuitwrp-skip-unavailable-aidl-haptics.patch
+        sed -i 's/apc-ndk_platform/apc-ndk/g' bootable/recovery/tar/Android.bp
+
+    - name: Compile Vendor Boot Image
+      run: |
+        cd ~/twrp
+        export ALLOW_MISSING_DEPENDENCIES=true
+        export SOONG_JAVAC_EXTRA_FLAGS="-J-Xmx4096m"
+        source build/envsetup.sh
+        lunch twrp_malachite-ap2a-eng
+        mka vendorbootimage -j1
+        
