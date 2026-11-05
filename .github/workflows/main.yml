@@ -39,7 +39,7 @@ jobs:
       run: |
         cd ~/twrp
         mkdir -p device/xiaomi/malachite
-        git clone https://github.com -b A16 device/xiaomi/malachite
+        git clone https://www.github.com -b A16 device/xiaomi/malachite
         git -C bootable/recovery apply device/xiaomi/malachite/patches/0001-minuitwrp-skip-unavailable-aidl-haptics.patch
 
     - name: Compile Vendor Boot Image
