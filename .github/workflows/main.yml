@@ -1,0 +1,55 @@
+name: Build Poco X7 TWRP (malachite)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+
+    steps:
+    - name: Checkout Builder
+      uses: actions/checkout@v4
+
+    - name: Cleanup Runner Space
+      run: |
+        sudo rm -rf /usr/share/dotnet
+        sudo rm -rf /usr/local/lib/android
+        sudo rm -rf /opt/ghc
+        sudo rm -rf "/usr/local/share/boost"
+        sudo rm -rf /etc/apt/sources.list.d/*
+
+    - name: Install Build Dependencies
+      run: |
+        sudo apt update
+        sudo apt install -y git-core gnupg flex bison gperf build-essential zip curl zlib1g-dev gcc-multilib g++-multilib libc6-dev-i386 lib32ncurses-dev x11proto-core-dev libx11-dev lib32z1-dev ccache libgl1-mesa-dev libxml2-utils xsltproc unzip fontconfig libssl-dev bc python3-pip python3-is-python3 libncurses5 repo
+
+    - name: Set Up Workspace and Source Code
+      run: |
+        mkdir ~/twrp && cd ~/twrp
+        git config --global user.name "Builder"
+        git config --global user.email "builder@internal.com"
+        repo init --depth=1 -u https://github.com -b twrp-14.1
+        repo sync -j$(nproc --all) --force-sync --no-clone-bundle --no-tags
+
+    - name: Add Malachite Device Tree & Apply Touch Patch
+      run: |
+        cd ~/twrp
+        mkdir -p device/xiaomi/malachite
+        git clone https://github.com -b A16 device/xiaomi/malachite
+        git -C bootable/recovery apply device/xiaomi/malachite/patches/0001-minuitwrp-skip-unavailable-aidl-haptics.patch
+
+    - name: Compile Vendor Boot Image
+      run: |
+        cd ~/twrp
+        source build/envsetup.sh
+        lunch twrp_malachite-ap2a-eng
+        mka vendorbootimage -j$(nproc --all)
+
+    - name: Upload Finished TWRP File
+      uses: actions/upload-artifact@v4
+      with:
+        name: TWRP-PocoX7-vendor_boot
+        path: /home/runner/twrp/out/target/product/malachite/vendor_boot.img
