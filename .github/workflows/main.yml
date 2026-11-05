@@ -32,19 +32,20 @@ jobs:
         mkdir -p ~/twrp && cd ~/twrp
         git config --global user.name "Xenon"
         git config --global user.email "eriranno@gmail.com"
-        repo init -u https://github.com -b twrp-14.1 --depth=1
+        repo init --depth=1 -u https://github.com/minimal-manifest-twrp/platform_manifest_twrp_aosp.git -b twrp-14.1
         repo sync -j$(nproc --all) --force-sync --no-clone-bundle --no-tags
 
     - name: Add Malachite Device Tree & Apply Touch Patch
       run: |
         cd ~/twrp
         mkdir -p device/xiaomi/malachite
-        git clone https://www.github.com -b A16 device/xiaomi/malachite
+        git clone https://github.com -b A16 device/xiaomi/malachite
         git -C bootable/recovery apply device/xiaomi/malachite/patches/0001-minuitwrp-skip-unavailable-aidl-haptics.patch
 
     - name: Compile Vendor Boot Image
       run: |
         cd ~/twrp
+        export ALLOW_MISSING_DEPENDENCIES=true
         source build/envsetup.sh
         lunch twrp_malachite-ap2a-eng
         mka vendorbootimage -j$(nproc --all)
