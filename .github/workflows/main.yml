@@ -41,7 +41,7 @@ jobs:
         git config --global --unset-all url."https://github.com".insteadOf || true
         mkdir -p device/xiaomi/malachite
         git clone https://github.com/mytiantian001/android_device_xiaomi_malachite_twrp.git -b A16 device/xiaomi/malachite
-        git -C bootable/recovery apply device/xiaomi/malachite/patches/0001-minuitwrp-skip-unavailable-aidl-haptics.patch
+        git -C bootable/recovery apply ../../device/xiaomi/malachite/patches/0001-minuitwrp-skip-unavailable-aidl-haptics.patch
 
     - name: Compile Vendor Boot Image
       run: |
