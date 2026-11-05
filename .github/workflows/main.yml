@@ -13,13 +13,18 @@ jobs:
     - name: Checkout Builder
       uses: actions/checkout@v4
 
-    - name: Cleanup Runner Space
+    - name: Cleanup Runner Space and Enable Disk Swap
       run: |
         sudo rm -rf /usr/share/dotnet
         sudo rm -rf /usr/local/lib/android
         sudo rm -rf /opt/ghc
         sudo rm -rf "/usr/local/share/boost"
         sudo rm -rf /etc/apt/sources.list.d/*
+        sudo swapoff -a
+        sudo dd if=/dev/zero of=/swapfile bs=1M count=16384
+        sudo chmod 600 /swapfile
+        sudo mkswap /swapfile
+        sudo swapon /swapfile
 
     - name: Install Build Dependencies
       run: |
@@ -50,11 +55,5 @@ jobs:
         export SOONG_JAVAC_EXTRA_FLAGS="-J-Xmx4096m"
         source build/envsetup.sh
         lunch twrp_malachite-ap2a-eng
-        mka vendorbootimage -j2
-
-    - name: Upload Finished TWRP File
-      uses: actions/upload-artifact@v4
-      with:
-        name: TWRP-PocoX7-vendor_boot
-        path: /home/runner/twrp/out/target/product/malachite/vendor_boot.img
+        mka vendorbootimage -j1
         
