@@ -32,7 +32,7 @@ jobs:
         mkdir -p ~/twrp && cd ~/twrp
         git config --global user.name "Xenon"
         git config --global user.email "eriranno@gmail.com"
-        repo init --depth=1 -u https://github.com -b twrp-14.1
+        repo init --depth=1 -u https://github.com/minimal-manifest-twrp/platform_manifest_twrp_aosp.git -b twrp-14.1
         repo sync -j$(nproc --all) --force-sync --no-clone-bundle --no-tags
 
     - name: Add Malachite Device Tree & Apply Touch Patch
