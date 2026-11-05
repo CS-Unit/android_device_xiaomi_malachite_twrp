@@ -47,9 +47,10 @@ jobs:
       run: |
         cd ~/twrp
         export ALLOW_MISSING_DEPENDENCIES=true
+        export SOONG_JAVAC_EXTRA_FLAGS="-J-Xmx4096m"
         source build/envsetup.sh
         lunch twrp_malachite-ap2a-eng
-        mka vendorbootimage -j$(nproc --all)
+        mka vendorbootimage -j2
 
     - name: Upload Finished TWRP File
       uses: actions/upload-artifact@v4
