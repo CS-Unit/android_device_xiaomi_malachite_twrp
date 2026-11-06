@@ -37,7 +37,7 @@ jobs:
         mkdir -p ~/twrp && cd ~/twrp
         git config --global user.name "Xenon"
         git config --global user.email "eriranno@gmail.com"
-        repo init --depth=1 -u https://github.com/minimal-manifest-twrp/platform_manifest_twrp_aosp.git -b twrp-14.1
+        repo init --depth=1 -u https://github.com -b twrp-14.1
         repo sync -j$(nproc --all) --force-sync --no-clone-bundle --no-tags
 
     - name: Add Malachite Device Tree & Apply Touch Patch
@@ -45,9 +45,9 @@ jobs:
         cd ~/twrp
         git config --global --unset-all url."https://github.com".insteadOf || true
         mkdir -p device/xiaomi/malachite
-        git clone https://github.com/mytiantian001/android_device_xiaomi_malachite_twrp.git -b A16 device/xiaomi/malachite
+        git clone https://github.com -b A16 device/xiaomi/malachite
         git -C bootable/recovery apply ../../device/xiaomi/malachite/patches/0001-minuitwrp-skip-unavailable-aidl-haptics.patch
-        sed -i 's/apc-ndk_platform/apc-ndk/g' bootable/recovery/tar/Android.bp
+        find bootable/recovery -type f -name "*.bp" -o -name "*.mk" | xargs sed -i 's/apc-ndk_platform/apc-ndk/g' || true
 
     - name: Compile Vendor Boot Image
       run: |
@@ -57,4 +57,10 @@ jobs:
         source build/envsetup.sh
         lunch twrp_malachite-ap2a-eng
         mka vendorbootimage -j1
+
+    - name: Upload Finished TWRP File
+      uses: actions/upload-artifact@v4
+      with:
+        name: TWRP-PocoX7-vendor_boot
+        path: /home/runner/twrp/out/target/product/malachite/vendor_boot.img
         
