@@ -7,15 +7,15 @@ jobs:
   build:
     runs-on: ubuntu-22.04
     steps:
-      - name: Free Disk Space
-        uses: jlumbroso/free-disk-space@main
-        with:
-          tool-cache: true
-          android: false
-          dotnet: true
-          haskell: true
-          large-packages: true
-          docker-images: true
+      - name: Maximize Build Disk Space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/share/boost
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          sudo apt-get clean
+          df -h
 
       - name: Install Build Dependencies
         run: |
@@ -41,7 +41,6 @@ jobs:
           cd twrp
           repo init --depth=1 -u https://github.com/minimal-manifest-twrp/platform_manifest_twrp_aosp.git -b twrp-14.1
           
-          # Add local manifest for malachite device tree
           mkdir -p .repo/local_manifests
           cat <<EOF > .repo/local_manifests/malachite.xml
           <?xml version="1.0" encoding="UTF-8"?>
@@ -55,8 +54,11 @@ jobs:
       - name: Apply TWRP Companion Core Patch
         run: |
           cd twrp
-          git -C bootable/recovery apply --check device/xiaomi/malachite/patches/0001-minuitwrp-skip-unavailable-haptics.patch || true
-          git -C bootable/recovery apply device/xiaomi/malachite/patches/0001-minuitwrp-skip-unavailable-haptics.patch || true
+          if [ -d "device/xiaomi/malachite/patches" ]; process_patch() { git -C bootable/recovery apply "$1" || true; }; then
+            for patch in device/xiaomi/malachite/patches/*.patch; do
+              [ -f "$patch" ] && git -C bootable/recovery apply "$patch" || true
+            done
+          fi
 
       - name: Build TWRP Vendor Boot Image
         run: |
