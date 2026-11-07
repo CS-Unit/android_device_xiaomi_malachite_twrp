@@ -1,0 +1,74 @@
+name: Build TWRP for Malachite
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Free Disk Space
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: true
+          android: false
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+
+      - name: Install Build Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            gperf gcc-multilib gcc-10-multilib g++-multilib g++-10-multilib \
+            libc6-dev libncurses5-dev x11proto-core-dev libx11-dev \
+            lib32z1-dev libgl1-mesa-dev libxml2-utils xsltproc unzip fontconfig \
+            git repo python3 python3-pip
+
+      - name: Setup Python Symlink
+        run: |
+          sudo ln -sf /usr/bin/python3 /usr/bin/python
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "Xenon"
+          git config --global user.email "eriranno@gmail.com"
+
+      - name: Initialize TWRP Source & Sync
+        run: |
+          mkdir twrp
+          cd twrp
+          repo init --depth=1 -u https://github.com/minimal-manifest-twrp/platform_manifest_twrp_aosp.git -b twrp-14.1
+          
+          # Add local manifest for malachite device tree
+          mkdir -p .repo/local_manifests
+          cat <<EOF > .repo/local_manifests/malachite.xml
+          <?xml version="1.0" encoding="UTF-8"?>
+          <manifest>
+            <project path="device/xiaomi/malachite" name="mytiantian001/android_device_xiaomi_malachite_twrp" remote="github" revision="A16" />
+          </manifest>
+          EOF
+          
+          repo sync -j$(nproc --all) --force-sync --no-clone-bundle
+
+      - name: Apply TWRP Companion Core Patch
+        run: |
+          cd twrp
+          git -C bootable/recovery apply --check device/xiaomi/malachite/patches/0001-minuitwrp-skip-unavailable-haptics.patch || true
+          git -C bootable/recovery apply device/xiaomi/malachite/patches/0001-minuitwrp-skip-unavailable-haptics.patch || true
+
+      - name: Build TWRP Vendor Boot Image
+        run: |
+          cd twrp
+          export ALLOW_MISSING_DEPENDENCIES=true
+          source build/envsetup.sh
+          lunch twrp_malachite-ap2a-eng
+          mka vendorbootimage -j$(nproc --all)
+
+      - name: Upload TWRP Vendor Boot Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: twrp-malachite-vendor_boot
+          path: twrp/out/target/product/malachite/vendor_boot.img
+          
