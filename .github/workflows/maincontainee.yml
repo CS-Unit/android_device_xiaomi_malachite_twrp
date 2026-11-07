@@ -7,7 +7,7 @@ jobs:
   build:
     runs-on: ubuntu-22.04
     steps:
-      - name: Maximize Build Disk Space
+      - name: Maximize Disk Space & Enable Swap
         run: |
           sudo rm -rf /usr/share/dotnet
           sudo rm -rf /usr/local/lib/android
@@ -15,7 +15,14 @@ jobs:
           sudo rm -rf /usr/local/share/boost
           sudo rm -rf "$AGENT_TOOLSDIRECTORY"
           sudo apt-get clean
-          df -h
+          
+          # Create a 10GB Swap file to prevent OOM process killing
+          sudo swapoff -a || true
+          sudo fallocate -l 10G /swapfile || sudo dd if=/dev/zero of=/swapfile bs=1M count=10240
+          sudo chmod 600 /swapfile
+          sudo mkswap /swapfile
+          sudo swapon /swapfile
+          free -h
 
       - name: Install Build Dependencies
         run: |
@@ -54,7 +61,7 @@ jobs:
       - name: Apply TWRP Companion Core Patch
         run: |
           cd twrp
-          if [ -d "device/xiaomi/malachite/patches" ]; process_patch() { git -C bootable/recovery apply "$1" || true; }; then
+          if [ -d "device/xiaomi/malachite/patches" ]; then
             for patch in device/xiaomi/malachite/patches/*.patch; do
               [ -f "$patch" ] && git -C bootable/recovery apply "$patch" || true
             done
@@ -64,9 +71,11 @@ jobs:
         run: |
           cd twrp
           export ALLOW_MISSING_DEPENDENCIES=true
+          export _JAVA_OPTIONS="-Xmx3072m"
+          export NINJA_ARGS="-j2"
           source build/envsetup.sh
           lunch twrp_malachite-ap2a-eng
-          mka vendorbootimage -j$(nproc --all)
+          mka vendorbootimage
 
       - name: Upload TWRP Vendor Boot Artifact
         uses: actions/upload-artifact@v4
