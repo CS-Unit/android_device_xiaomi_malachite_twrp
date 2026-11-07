@@ -45,7 +45,7 @@ jobs:
         cd ~/twrp
         git config --global --unset-all url."https://github.com".insteadOf || true
         mkdir -p device/xiaomi/malachite
-        git clone --no-single-branch https://github.com device/xiaomi/malachite
+        git clone --no-single-branch https://github.com/minimal-manifest-twrp/platform_manifest_twrp_aosp.git device/xiaomi/malachite
         cd device/xiaomi/malachite && git checkout A16 && cd ~/twrp
         git -C bootable/recovery apply ../../device/xiaomi/malachite/patches/0001-minuitwrp-skip-unavailable-aidl-haptics.patch
         find bootable/recovery -type f -name "*.bp" -o -name "*.mk" | xargs sed -i 's/apc-ndk_platform/apc-ndk/g' || true
