@@ -57,7 +57,7 @@ jobs:
         export SOONG_JAVAC_EXTRA_FLAGS="-J-Xmx4096m"
         source build/envsetup.sh
         lunch twrp_malachite-ap2a-eng
-        mka vendorbootimage -j1
+        mka vendorbootimage -j4
 
     - name: Upload Finished TWRP File
       uses: actions/upload-artifact@v4
